@@ -102,8 +102,14 @@ app.get('/usercoordinate/:collection/:id/:latitude/:longitude', function(req, re
 				console.log("Je cherche un bar");
 	          	obj.forEach(function(entry) {
 	              	collectionDriver.memberWithinPlace("user", entry.geometry, function(error, result){
-					  	if (error) {res.send(400, error); }
-					  	else {res.send(200, entry); }
+					  	if (error) {res.send(400, error)}
+					  	else if (result == true) {
+					  		console.log(entry._id);
+						  	collectionDriver.placeCounter("places", entry._id, entry, function(error, result){
+							  	if (error) {res.send(400, error)}
+							  	else {res.send(200, result)}
+						  	});
+					  	}
 				});
 			});
         }	

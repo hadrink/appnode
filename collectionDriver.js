@@ -166,8 +166,8 @@ CollectionDriver.prototype.memberWithinPlace = function(collectionName, placeCoo
 				}
 			).toArray(function(error, resultat){
 				if (error) callback(error)
-				else if (resultat.length == 0) callback(false)
-				else callback(null, resultat)
+				else if (resultat.length == 0) callback(null, false)
+				else callback(null, true)
 			});
 		}
 	});
@@ -175,6 +175,7 @@ CollectionDriver.prototype.memberWithinPlace = function(collectionName, placeCoo
 
 CollectionDriver.prototype.coordinateRefresh = function(collectionName, obj, callback){
 	console.log("function for actualise user coordinate");
+	console.log(obj.id);
 	this.getCollection(collectionName, function(error, the_collection){
 		if (error) callback(error)
 		else {
@@ -184,6 +185,22 @@ CollectionDriver.prototype.coordinateRefresh = function(collectionName, obj, cal
             	if (error) callback(error)
             	else callback(null, obj);
             });
+		}
+	});
+}
+
+CollectionDriver.prototype.placeCounter = function(collectionName, placeId, place, callback){
+	console.log("Counter function");
+	console.log(typeof(placeId));
+	
+	var placeIdHex = String(placeId);
+	this.getCollection(collectionName, function(error, the_collection){
+		if (error) callback (error)
+		else {
+			the_collection.update({'_id':ObjectID(placeIdHex)}, {$inc : { counter : 1}}, function(error, doc) {
+				if (error) callback(error)
+				else callback (null, place);
+			});
 		}
 	});
 }
