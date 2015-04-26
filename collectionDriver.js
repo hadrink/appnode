@@ -205,4 +205,48 @@ CollectionDriver.prototype.placeCounter = function(collectionName, placeId, plac
 	});
 }
 
+CollectionDriver.prototype.updateUserPlaces = function(collectionName, userId, obj, callback){
+	console.log("Update user place");
+	
+	this.getCollection(collectionName, function (error, the_collection){
+		visitedAt = new Date();
+		if (error) callback (error)
+		else {
+			the_collection.update({'_id':ObjectID(userId)}, {$addToSet : {visited : [obj.name, visitedAt]}}, function(error, doc) {
+				if (error) callback(error)
+				else console.log("Update of user place");
+			});
+			
+			the_collection.findOne({'_id':ObjectID(userId)}, function(error, doc){
+				if (error) callback(error)
+				else callback(null, doc);
+			});
+		}
+	});
+	
+	/*this.getCollection(placeCollection, function (error, the_collection){
+		if (error) callback (error)
+		else {
+			the_collection.update({'_id':ObjectID(obj._id)}
+		}
+	});*/
+}
+
+CollectionDriver.prototype.updatePlaceUsers = function(placeCollection, placeId, obj, callback){
+	console.log("Update place users");
+	console.log(obj);
+	
+	var placeIdHex = String(placeId);
+	this.getCollection(placeCollection, function (error, the_collection){
+		if (error) callback (error)
+		else {
+			the_collection.update({'_id':ObjectID(placeIdHex)}, {$addToSet : {usersvisited : [obj.Firstname, obj.Lastname]}}, function (error, doc) {
+				if (error) callback (error)
+				else callback (null, doc);
+			});
+		}
+	});
+}
+
+
 exports.CollectionDriver = CollectionDriver;
