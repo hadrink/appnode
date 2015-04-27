@@ -210,17 +210,44 @@ CollectionDriver.prototype.updateUserPlaces = function(collectionName, userId, o
 	
 	this.getCollection(collectionName, function (error, the_collection){
 		visitedAt = new Date();
+		var placeId = obj._id;
+		var documentVisited = "visited";
+		var documentVisitedId = documentVisited+"."+placeId;
+		console.log(documentVisitedId);
 		if (error) callback (error)
 		else {
-			the_collection.update({'_id':ObjectID(userId)}, {$addToSet : {visited : [obj.name, visitedAt]}}, function(error, doc) {
+			
+			the_collection.findOne({'_id':ObjectID(userId)}, function(error, doc){
+				console.log(doc.visited.visitedAt);
+				console.log(doc.visited.id);
+				console.log(placeId);
+				
+				var id1 = String(doc.visited.id);
+				var id2 = String(placeId);
+				var newDate = new Date();
+				console.log(newDate);
+				
+				var diff = newDate - doc.visited.visitedAt;
+				
+				console.log(Math.floor(diff / 60e3));
+				
+				
+				if (error) callback(error)
+				else if ((diff < 60e3) && (id1 == id2)) {
+					console.log("Plus petit qu'une minute");
+					callback(null, false)
+				}
+				
+				else {
+					callback(null, doc)
+				}
+			});
+			
+			the_collection.update({'_id':ObjectID(userId)}, {$set : { visited : {"id" : placeId, "name" : obj.name, "visitedAt": visitedAt}}}, function(error, doc) {
 				if (error) callback(error)
 				else console.log("Update of user place");
 			});
 			
-			the_collection.findOne({'_id':ObjectID(userId)}, function(error, doc){
-				if (error) callback(error)
-				else callback(null, doc);
-			});
 		}
 	});
 	

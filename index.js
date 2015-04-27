@@ -108,10 +108,8 @@ app.get('/usercoordinate/:collection/:id/:latitude/:longitude', function(req, re
 							  	if (error) {res.send(400, error)}
 							  	else {res.send(200, result)}
 						  	});
-						  	collectionDriver.updateUserPlaces("user", id, entry, function(error, geoge){
-						  		console.log("Yotototo");
-						  		console.log(geoge);
-								  	collectionDriver.updatePlaceUsers("places", entry._id, geoge, function(error, obj){
+						  	collectionDriver.updateUserPlaces("user", id, entry, function(error, result){
+								  	collectionDriver.updatePlaceUsers("places", entry._id, result, function(error, obj){
 									  	if (error) {res.send(400, error)}
 									  	else {res.send(200, obj)}	
 									});
