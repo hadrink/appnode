@@ -11,7 +11,7 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
 app.use(express.bodyParser());
 
-var mongoHost = 'localHost';
+var mongoHost = 'localhost';
 var mongoPort = 27017; 
 var collectionDriver;
 
@@ -78,42 +78,41 @@ app.get('/usercoordinate/:collection/:id/:latitude/:longitude', function(req, re
 		
 	var myObj = {"id":id, "latitude":latitude,"longitude":longitude}
 	
-	console.log(myObj);
-	console.log(collection);
-	console.log(latitude);
-	console.log(longitude);
-	console.log(user);
-	
-	collectionDriver.coordinateRefresh(collection,myObj, function(error, objs){
-	    if (id) {
-	
-				if (error) { res.send(400, error); }
-				//else { res.send(200, objs); }
-		} else {
-			var error = { "message" : "Cannot PUT a whole collection" }
-			res.send(400, error);
-		}
+	collectionDriver.coordinateRefresh(collection,myObj, function(error, objs){	
+		var error = { "message" : "Cannot PUT a whole collection" }				
+		if (error) { res.send(400, error); }
 	});
-		
-	collectionDriver.barListClose("places", latitude, longitude, function(error, obj){
+	
+	// Find if the user is within a place and update Data base	
+	collectionDriver.barListClose("places", latitude, longitude, function(error, obj){ // Get places around the user
 		if (error) {res.send(400, error); }
-		else if (obj.length == 0) {console.log("Pas de bar");}
+		else if (obj.length == 0) {res.send("No place around");}
+		
+		// If places around him
+		
 		else { 
-				console.log("Je cherche un bar");
-	          	obj.forEach(function(entry) {
+	          	obj.forEach(function(entry) { // Loop on the places and check if the user is within place
 	              	collectionDriver.memberWithinPlace("user", entry.geometry, function(error, result){
 					  	if (error) {res.send(400, error)}
-					  	else if (result == true) {
-						  	collectionDriver.placeCounter("places", entry._id, entry, function(error, result){
+					  	else if (result == true) { // Send "true" when the user is within 
+						  	collectionDriver.placeCounter("places", entry._id, entry, function(error, result){ // inc a counter in the "place" document
 							  	if (error) {res.send(400, error)}
-							  	else {res.send(200, result)}
 						  	});
-						  	collectionDriver.updateUserPlaces("user", id, entry, function(error, result){
-								  	collectionDriver.updatePlaceUsers("places", entry._id, result, function(error, obj){
+						  	collectionDriver.updateUserPlaces("user", id, entry, function(error, result){ // Update places in the "user" document
+						  		if (result == false){
+							  		res.send("The user has been already update recently")
+						  		}
+						  		else {
+								  	collectionDriver.updatePlaceUsers("places", entry._id, result, function(error, message){ // Put the user in the "place" document
 									  	if (error) {res.send(400, error)}
-									  	else {res.send(200, obj)}	
+									  	else {res.send(200, message)}	
 									});
+																		
+								}
 						  	});
+					  	}
+					  	else if (result == false){
+						  	res.send("The user is not within the place");
 					  	}
 				});
 			});
