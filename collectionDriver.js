@@ -50,7 +50,7 @@ CollectionDriver.prototype.searchBar = function(collectionName, query, callback)
 	this.getCollection(collectionName, function(error, the_collection) {
 		if (error) callback (error)
 		else {
-			the_collection.find({name : {$regex : query, $options :'i'}}).limit(20).toArray(function(error, result){
+			the_collection.find({"properties.name" : {$regex : query, $options :'i'}}).limit(20).toArray(function(error, result){
 				if(error) callback (error)
 				else callback({"searchlist" : result})
 			});
@@ -151,19 +151,27 @@ CollectionDriver.prototype.returnListPlaces = function(collectionName, latitude,
 		            $maxDistance: distanceMax
 		          }
 		       },
-			   "average_age": 
-			   	{ 
-			   		$gt: minAge, 
-			   		$lt: maxAge 
-			   	} 
-		   }
-
-		).toArray(function(error, result){
+			 }
+		).sort({ counter: -1 }).limit(100).toArray(function(error, result){
 			if (error) callback(error)
 			else callback(null, result)
 		});
 	});
 }
+
+CollectionDriver.prototype.getUser = function(idFb, collectionName, callback) {
+	console.log("Get friends");
+	
+	this.getCollection(collectionName, function (error, the_collection){
+		if (error) callback (error)
+		the_collection.findOne({'id_facebook': idFb}, function(error, userObj){ 
+			if (error) callback(error)
+			else {
+				callback(userObj);
+			}
+		});
+	});
+} 
 
 
 //Return bars
@@ -176,12 +184,12 @@ CollectionDriver.prototype.barListClose = function(collectionName, latitude, lon
 		if (error) callback(error)
 		the_collection.find(
 		   {
-		     loc:
+		     "loc.coordinates":
 		       { $near :
 		          {
 		            $geometry: { type: "Point",  coordinates: [ floatLongitude, floatLatitude ] },
 		            $minDistance: 0,
-		            $maxDistance: 20
+		            $maxDistance: 1000
 		          }
 		       }
 		   }
@@ -236,6 +244,7 @@ CollectionDriver.prototype.memberWithinPlace = function(collectionName, placeCoo
 				}
 			).toArray(function(error, result){
 				console.log("I'm coming to be here");
+				console.log(result);
 				if (error) callback(error)
 				else if (result.length == 0) callback(null, false)
 				else callback(null, true)
@@ -247,13 +256,13 @@ CollectionDriver.prototype.memberWithinPlace = function(collectionName, placeCoo
 
 CollectionDriver.prototype.coordinateRefresh = function(collectionName, obj, callback){
 	console.log("function for actualise user coordinate");
-	console.log(obj.id);
+	console.log(obj.email);
 	this.getCollection(collectionName, function(error, the_collection){
 		if (error) callback(error)
 		else {
 	        //obj.updated_at = new Date();
 	        console.log(obj);
-            the_collection.update({'_id':ObjectID(obj.id)}, { $set : { "loc" : { "type": "Point", "coordinates": [ obj.longitude , obj.latitude ] }}}, function(error,doc) {
+            the_collection.update({'email' : obj.email}, { $set : { "loc" : { "type": "Point", "coordinates": [ obj.longitude , obj.latitude ] }}}, function(error,doc) {
             	if (error) callback(error)
             	else callback(null, obj);
             });

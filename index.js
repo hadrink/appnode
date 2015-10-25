@@ -47,42 +47,62 @@ app.post('/search/:collection/:query', function (req, res){
 	});
 });
 
-app.get('/list/:intention/', function (req, res){
+app.post('/list/:intention/', function (req, res){
 	console.log("Get list");
 	var userID = "idfacebook";
-	var collection = "places";
-	var latitude = 47.3335545;
-	var longitude = 5.048487;
-	var distanceMax = 20;
-	var minAge = 23;
-	var maxAge = 50;
+	console.log(req.body);
+	var collection = req.body.collection; //"places";
+	var latitude = req.body.latitude; //48.297468;
+	var longitude = req.body.longitude; //4.074515;
+	var distanceMax = parseInt(req.body.distance_max)*1000; //200000;
+	var minAge = req.body.age_min; //20
+	var maxAge = req.body.age_max; //50;
 	var userSex = 1;
 	var friends = ["976915349020345","976915349020344"];
+	var finalObj = {};
 	var listPlaces = [];
 	var intention = "had";
 	collectionDriver.returnListPlaces(collection, latitude, longitude, distanceMax, minAge, maxAge, function(err, places){
-		if(err) {res.send(400, err);}
+		if(err) {res.send(400, err); }
 		else {
-			
 			//-- Loop to get all places
 			places.forEach(function(place) {
 				
 				//-- Init Variables				
 					//-- Get some data in database
-				var popularity = place.popularity,
+				var popularity = typeof place.popularity !== 'undefined' ? place.popularity : null,
 					averageAge = place.average_age,
 					averageGender = place.average_gender,
+					myfriends = [],
 					nbFriends = 0,
+					percentMale,
+					percentFemale,
+					upperPointsMale,
+					upperPointsFemale,
+					averageAgeWished,
+					diffAge;
 					
-					//-- Calc percent male and female and upper or lower points
-					percentMale = (averageGender * 100),
-					percentFemale = 100 - percentMale,
-					upperPointsMale = percentMale - 50,
-					upperPointsFemale = percentFemale - 50,
+						
+					if(typeof place.average_gender !== 'undefined'){
+						//-- Calc percent male and female and upper or lower points
+						percentMale = (averageGender * 100);
+						percentFemale = 100 - percentMale;
+						upperPointsMale = percentMale - 50;
+						upperPointsFemale = percentFemale - 50;
+					}
+					else{
+						upperPointsMale = null;
+						upperPointsFemale = null;
+					}
 					
-					//-- Age wished and diff age
-					averageAgeWished = (minAge + maxAge) / 2,
-					diffAge = averageAgeWished - averageAge,
+					if(typeof place.average_age !== 'undefined'){
+						//-- Age wished and diff age
+						averageAgeWished = (minAge + maxAge) / 2;
+						diffAge = averageAgeWished - averageAge;
+					}
+					else{
+						diffAge = null;
+					}
 
 					// -- Get location for calc distance
 					locationPlace = place.loc.coordinates,
@@ -92,12 +112,27 @@ app.get('/list/:intention/', function (req, res){
 					
 					//-- Loop to inc number of friends in place
 					place.visitors.forEach(function(visitor){
+						console.log("visitor test");
+						console.log(visitor);
+						console.log(friends.length);
 						for(var i = 0; i < friends.length; i++){
+							console.log("friends i");
+							console.log(friends[i]);
 							if (friends[i] == visitor.id_facebook){
+								console.log("id_facebook test");
+								console.log(visitor.id_facebook);
+								myfriends.push(visitor.id_facebook);
 								return nbFriends++;
 							}
 						}
 					});
+					
+					console.log("friends test");
+					place.friends = myfriends;
+					console.log(place.friends);
+					console.log(friends);
+					
+					console.log(place);
 															
 					//-- Calc distance between locations
 					function distance(lat1, lon1, lat2, lon2, unit) {
@@ -167,11 +202,13 @@ app.get('/list/:intention/', function (req, res){
 		
 		//-- Sort places in order ascending points
 		listPlaces.sort(function(a, b){
-			return a.points - b.points;
+			return b.points - a.points;
 		});
 		
+		finalObj.listbar = listPlaces;
+		
 		//-- Send list places
-		res.send(200, listPlaces);
+		res.send(200, finalObj);
 
 	});	
 });
@@ -211,14 +248,15 @@ app.post('/:collection/:latitude/:longitude/:radius', function(req, res){
 
 // Get coordinate and verify if member is within place
 
-app.get('/usercoordinate/:collection/:id/:latitude/:longitude', function(req, res){
+app.post('/usercoordinate/:collection/:id/:latitude/:longitude', function(req, res){
+	console.log("I'm in usercoordinate");
 	var collection = req.params.collection;
 	var user = req.params.user;
 	var latitude = parseFloat(req.params.latitude);
 	var longitude = parseFloat(req.params.longitude);
 	var id = req.params.id;
 		
-	var myObj = {"id":id, "latitude":latitude,"longitude":longitude}
+	var myObj = {"email":id, "latitude":latitude,"longitude":longitude}
 	
 	collectionDriver.coordinateRefresh(collection,myObj, function(error, objs){	
 		//var error = { "message" : "Cannot PUT a whole collection" }				
@@ -229,7 +267,7 @@ app.get('/usercoordinate/:collection/:id/:latitude/:longitude', function(req, re
 	collectionDriver.barListClose("places", latitude, longitude, function(error, obj){ // Get places around the user
 		console.log(obj.length);
 		if (error) {res.send(400, error); }
-		else if (obj.length == 0) {res.send("No place around");}
+		else if (obj.length == 0) {res.send(200, "No place around");}
 		
 		// If places around him
 		
@@ -256,6 +294,7 @@ app.get('/usercoordinate/:collection/:id/:latitude/:longitude', function(req, re
 						  	});
 					  	}
 					  	else if (result == false){
+					  		console.log("The user is not within the place");
 						  	res.send("The user is not within the place");
 					  	}
 				});
